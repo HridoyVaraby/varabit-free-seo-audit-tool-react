@@ -4,7 +4,19 @@ export function analyzeMobileFriendly(doc: Document): AuditResult {
   const issues: string[] = [];
   const suggestions: string[] = [];
 
-  const viewport = doc.querySelector('meta[name="viewport"]');
+  let viewport: Element | null;
+  try {
+    viewport = doc.querySelector('meta[name="viewport"]');
+  } catch {
+    return {
+      module: 'Mobile-Friendliness',
+      status: 'fail',
+      summary: 'Failed to analyze mobile-friendliness',
+      issues: ['Unable to query DOM elements due to parsing error'],
+      suggestions: ['Check if the page has valid HTML structure'],
+      data: { hasViewport: false }
+    };
+  }
 
   if (!viewport) {
     issues.push('No viewport meta tag found');
@@ -17,36 +29,8 @@ export function analyzeMobileFriendly(doc: Document): AuditResult {
     }
   }
 
-  const fonts = doc.querySelectorAll('*');
-  let smallFontCount = 0;
-
-  fonts.forEach(element => {
-    const fontSize = window.getComputedStyle(element as Element).fontSize;
-    const size = parseInt(fontSize);
-    if (size < 12 && size > 0) {
-      smallFontCount++;
-    }
-  });
-
-  if (smallFontCount > 0) {
-    issues.push(`${smallFontCount} elements with font size below 12px`);
-    suggestions.push('Use minimum 12px font size for mobile readability');
-  }
-
-  const clickableElements = doc.querySelectorAll('a, button');
-  let tooSmallCount = 0;
-
-  clickableElements.forEach(element => {
-    const rect = (element as HTMLElement).getBoundingClientRect();
-    if (rect.width < 48 || rect.height < 48) {
-      tooSmallCount++;
-    }
-  });
-
-  if (tooSmallCount > 0) {
-    issues.push(`${tooSmallCount} clickable elements smaller than 48x48px`);
-    suggestions.push('Make tap targets at least 48x48px for better mobile usability');
-  }
+  // Note: font-size and element size analysis requires DOM APIs that are not available in this context.
+  // These checks are intentionally omitted to prevent runtime errors.
 
   const status = issues.length === 0 ? 'pass' : issues.length <= 2 ? 'warning' : 'fail';
 

@@ -4,7 +4,7 @@ export async function fetchHtml(url: string): Promise<string> {
     const response = await fetch(proxyUrl);
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
     }
 
     return await response.text();

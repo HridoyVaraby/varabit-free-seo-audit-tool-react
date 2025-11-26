@@ -8,7 +8,20 @@ interface KeywordData {
 }
 
 export function analyzeKeywordDensity(doc: Document): AuditResult {
-  const text = extractText(doc);
+  let text: string;
+  try {
+    text = extractText(doc);
+  } catch {
+    return {
+      module: 'Keyword Density',
+      status: 'fail',
+      summary: 'Failed to extract text content from page',
+      issues: ['Unable to analyze text content due to parsing error'],
+      suggestions: ['Check if the page has valid HTML structure'],
+      data: { totalWords: 0, keywords: [] }
+    };
+  }
+
   const words = text
     .toLowerCase()
     .replace(/[^\w\s]/g, ' ')

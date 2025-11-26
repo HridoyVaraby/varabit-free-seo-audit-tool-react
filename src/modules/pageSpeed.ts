@@ -18,13 +18,13 @@ interface PageSpeedData {
 export async function analyzePageSpeed(url: string): Promise<AuditResult> {
   const apiKey = import.meta.env.VITE_PAGESPEED_API_KEY;
 
-  if (!apiKey || apiKey === 'your_api_key_here') {
+  if (!apiKey || apiKey.trim() === '' || apiKey === 'your_api_key_here') {
     return {
       module: 'Page Speed Analysis',
-      status: 'warning',
-      summary: 'API key not configured',
-      issues: ['PageSpeed Insights API key is not set'],
-      suggestions: ['Add your Google PageSpeed Insights API key to the .env file'],
+      status: 'fail',
+      summary: 'PageSpeed Insights API key missing or invalid',
+      issues: ['PageSpeed Insights API key is not configured or is using the default placeholder.'],
+      suggestions: ['Ensure your Google PageSpeed Insights API key is correctly set in your .env file and is not the placeholder value.'],
     };
   }
 

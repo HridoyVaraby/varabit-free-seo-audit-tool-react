@@ -2,7 +2,19 @@ import type { AuditResult } from './types';
 import { extractHeadings } from '../utils/parseDom';
 
 export function analyzeHeadings(doc: Document): AuditResult {
-  const headings = extractHeadings(doc);
+  let headings: any[];
+  try {
+    headings = extractHeadings(doc);
+  } catch (error) {
+    return {
+      module: 'Headings Structure',
+      status: 'fail',
+      summary: 'Failed to analyze headings',
+      issues: ['Unable to extract heading information due to parsing error'],
+      suggestions: ['Check if the page has valid HTML structure'],
+      data: { headings: [], h1Count: 0 }
+    };
+  }
   const issues: string[] = [];
   const suggestions: string[] = [];
 

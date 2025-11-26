@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
+import { sanitizeUrl } from '../utils/urlUtils';
 
 interface AuditFormProps {
   onSubmit: (url: string) => void;
@@ -23,17 +24,19 @@ export function AuditForm({ onSubmit, isLoading }: AuditFormProps) {
     e.preventDefault();
     setError('');
 
-    if (!url.trim()) {
+    const sanitizedUrl = sanitizeUrl(url);
+
+    if (!sanitizedUrl) {
       setError('Please enter a URL');
       return;
     }
 
-    if (!validateUrl(url)) {
+    if (!validateUrl(sanitizedUrl)) {
       setError('Please enter a valid URL (must start with http:// or https://)');
       return;
     }
 
-    onSubmit(url);
+    onSubmit(sanitizedUrl);
   };
 
   return (
