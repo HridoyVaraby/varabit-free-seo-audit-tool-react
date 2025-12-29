@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ArrowRight, Loader2 } from 'lucide-react';
 import { sanitizeUrl } from '../utils/urlUtils';
 
 interface AuditFormProps {
@@ -10,6 +10,7 @@ interface AuditFormProps {
 export function AuditForm({ onSubmit, isLoading }: AuditFormProps) {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
   const validateUrl = (input: string): boolean => {
     try {
@@ -40,41 +41,87 @@ export function AuditForm({ onSubmit, isLoading }: AuditFormProps) {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com"
-              disabled={isLoading}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-slate-100 disabled:cursor-not-allowed"
-            />
-            {error && (
-              <p className="mt-2 text-sm text-red-600">{error}</p>
-            )}
+    <div className="w-full max-w-2xl mx-auto">
+      <form onSubmit={handleSubmit} className="relative">
+        {/* Glow effect container */}
+        <div
+          className={`
+            absolute -inset-1 rounded-2xl transition-all duration-500
+            ${isFocused ? 'bg-gradient-to-r from-accent-primary/30 via-cyan-500/30 to-emerald-500/30 blur-lg' : 'opacity-0'}
+          `}
+        />
+
+        {/* Form container */}
+        <div
+          className={`
+            relative flex flex-col sm:flex-row gap-3 p-2 
+            bg-surface-tertiary rounded-2xl border transition-all duration-300
+            ${isFocused ? 'border-accent-primary/50' : 'border-white/[0.06]'}
+            ${error ? 'border-accent-error/50' : ''}
+          `}
+        >
+          {/* Search icon */}
+          <div className="absolute left-5 top-1/2 -translate-y-1/2 hidden sm:block">
+            <Search className={`w-5 h-5 transition-colors ${isFocused ? 'text-accent-primary' : 'text-content-muted'}`} />
           </div>
+
+          {/* Input field */}
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="Enter website URL to analyze..."
+            disabled={isLoading}
+            className={`
+              flex-1 bg-transparent text-content-primary placeholder-content-muted
+              px-4 sm:pl-12 py-3 text-base
+              focus:outline-none
+              disabled:opacity-50 disabled:cursor-not-allowed
+            `}
+          />
+
+          {/* Submit button */}
           <button
             type="submit"
             disabled={isLoading}
-            className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+            className={`
+              flex items-center justify-center gap-2 px-6 py-3
+              bg-accent-primary text-surface-primary font-semibold rounded-xl
+              transition-all duration-300
+              hover:bg-accent-primary-hover hover:shadow-glow-sm
+              active:scale-[0.98]
+              disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none
+            `}
           >
             {isLoading ? (
               <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <Loader2 className="w-5 h-5 animate-spin" />
                 <span>Analyzing...</span>
               </>
             ) : (
               <>
-                <Search className="w-5 h-5" />
-                <span>Audit</span>
+                <span>Analyze</span>
+                <ArrowRight className="w-5 h-5" />
               </>
             )}
           </button>
         </div>
+
+        {/* Error message */}
+        {error && (
+          <p className="mt-3 text-sm text-accent-error flex items-center gap-2 animate-fade-in">
+            <span className="w-1 h-1 rounded-full bg-accent-error" />
+            {error}
+          </p>
+        )}
       </form>
+
+      {/* Helper text */}
+      <p className="mt-4 text-center text-sm text-content-muted">
+        Enter any public URL to get a comprehensive SEO audit report
+      </p>
     </div>
   );
 }

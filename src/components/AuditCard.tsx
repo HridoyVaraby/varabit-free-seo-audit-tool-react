@@ -1,69 +1,138 @@
-import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import type { AuditResult } from '../modules/types';
+import { ScoreCircle } from './ScoreCircle';
 
 interface AuditCardProps {
   result: AuditResult;
+  index?: number;
 }
 
-export function AuditCard({ result }: AuditCardProps) {
+export function AuditCard({ result, index = 0 }: AuditCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const statusConfig = {
     pass: {
       icon: CheckCircle,
-      bgColor: 'bg-green-50',
-      borderColor: 'border-green-200',
-      iconColor: 'text-green-600',
-      textColor: 'text-green-800'
+      bgGlow: 'hover:shadow-[0_0_40px_rgba(0,212,170,0.15)]',
+      borderColor: 'border-accent-primary/30',
+      iconColor: 'text-accent-primary',
+      badgeClass: 'badge-success',
+      score: 100,
     },
     warning: {
       icon: AlertTriangle,
-      bgColor: 'bg-yellow-50',
-      borderColor: 'border-yellow-200',
-      iconColor: 'text-yellow-600',
-      textColor: 'text-yellow-800'
+      bgGlow: 'hover:shadow-[0_0_40px_rgba(245,158,11,0.15)]',
+      borderColor: 'border-accent-warning/30',
+      iconColor: 'text-accent-warning',
+      badgeClass: 'badge-warning',
+      score: 65,
     },
     fail: {
       icon: XCircle,
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-200',
-      iconColor: 'text-red-600',
-      textColor: 'text-red-800'
-    }
+      bgGlow: 'hover:shadow-[0_0_40px_rgba(239,68,68,0.15)]',
+      borderColor: 'border-accent-error/30',
+      iconColor: 'text-accent-error',
+      badgeClass: 'badge-error',
+      score: 30,
+    },
   };
 
   const config = statusConfig[result.status];
   const Icon = config.icon;
+  const hasDetails = result.issues.length > 0 || result.suggestions.length > 0;
 
   return (
-    <div className={`${config.bgColor} ${config.borderColor} border rounded-lg p-6 transition-all hover:shadow-md`}>
+    <div
+      className={`
+        card ${config.bgGlow} ${config.borderColor}
+        animate-slide-up transition-all duration-300
+        hover:border-opacity-100
+      `}
+      style={{ animationDelay: `${index * 100}ms` }}
+    >
+      {/* Header */}
       <div className="flex items-start gap-4">
-        <Icon className={`${config.iconColor} w-6 h-6 flex-shrink-0 mt-1`} />
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">{result.module}</h3>
-          <p className={`${config.textColor} font-medium mb-4`}>{result.summary}</p>
+        {/* Score circle */}
+        <div className="hidden sm:block">
+          <ScoreCircle score={config.score} size="sm" showLabel={false} />
+        </div>
 
-          {result.issues.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Issues:</h4>
-              <ul className="list-disc list-inside space-y-1">
-                {result.issues.map((issue, index) => (
-                  <li key={index} className="text-sm text-slate-600">{issue}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {result.suggestions.length > 0 && (
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <h4 className="text-sm font-semibold text-slate-700 mb-2">Suggestions:</h4>
-              <ul className="list-disc list-inside space-y-1">
-                {result.suggestions.map((suggestion, index) => (
-                  <li key={index} className="text-sm text-slate-600">{suggestion}</li>
-                ))}
-              </ul>
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className={`w-4 h-4 ${config.iconColor}`} />
+                <span className={config.badgeClass}>
+                  {result.status.toUpperCase()}
+                </span>
+              </div>
+              <h3 className="font-display font-semibold text-lg text-content-primary">
+                {result.module}
+              </h3>
             </div>
-          )}
+
+            {/* Mobile score */}
+            <div className="sm:hidden">
+              <ScoreCircle score={config.score} size="sm" showLabel={false} />
+            </div>
+          </div>
+
+          <p className="mt-2 text-content-secondary">{result.summary}</p>
         </div>
       </div>
+
+      {/* Expandable details */}
+      {hasDetails && (
+        <>
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="mt-4 w-full flex items-center justify-center gap-2 py-2 text-sm text-content-tertiary hover:text-content-primary transition-colors"
+          >
+            <span>{isExpanded ? 'Hide Details' : 'View Details'}</span>
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {isExpanded && (
+            <div className="mt-4 pt-4 border-t border-white/[0.06] space-y-4 animate-fade-in">
+              {result.issues.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-accent-error mb-2 flex items-center gap-2">
+                    <XCircle className="w-4 h-4" />
+                    Issues Found
+                  </h4>
+                  <ul className="space-y-2">
+                    {result.issues.map((issue, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-content-secondary">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-error mt-1.5 flex-shrink-0" />
+                        {issue}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {result.suggestions.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold text-accent-primary mb-2 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Recommendations
+                  </h4>
+                  <ul className="space-y-2">
+                    {result.suggestions.map((suggestion, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-content-secondary">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-primary mt-1.5 flex-shrink-0" />
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

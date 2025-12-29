@@ -1,76 +1,107 @@
 // List of CORS proxy services in order of preference
+// Note: These are public proxies and may have rate limits or availability issues
 const CORS_PROXIES = [
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?',
-  'https://api.codetabs.com/v1/proxy?quest=',
-  'https://cors-anywhere.herokuapp.com/',
-  'https://thingproxy.freeboard.io/fetch/'
+  // Most reliable proxies first
+  {
+    name: 'allorigins',
+    buildUrl: (url: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    parseResponse: async (response: Response) => {
+      const data = await response.json();
+      return data.contents;
+    }
+  },
+  {
+    name: 'corsproxy.io',
+    buildUrl: (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    parseResponse: async (response: Response) => response.text()
+  },
+  {
+    name: 'cors.sh',
+    buildUrl: (url: string) => `https://cors.sh/${url}`,
+    parseResponse: async (response: Response) => response.text()
+  },
+  {
+    name: 'crossorigin.me',
+    buildUrl: (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    parseResponse: async (response: Response) => response.text()
+  }
 ];
 
-interface ProxyAttempt {
-  url: string;
+interface ProxyResult {
+  proxyName: string;
   success: boolean;
   error?: string;
 }
 
-export async function fetchHtml(url: string, maxRetries: number = 3): Promise<string> {
-  const attempts: ProxyAttempt[] = [];
-  
-  // Try each proxy service with retries
-  for (const baseProxyUrl of CORS_PROXIES) {
+export async function fetchHtml(url: string, maxRetries: number = 2): Promise<string> {
+  const results: ProxyResult[] = [];
+
+  // Try each proxy service
+  for (const proxy of CORS_PROXIES) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const proxyUrl = baseProxyUrl + encodeURIComponent(url);
-        
+        const proxyUrl = proxy.buildUrl(url);
+
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
         const response = await fetch(proxyUrl, {
           method: 'GET',
           signal: controller.signal,
           headers: {
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
           }
         });
-        
+
         clearTimeout(timeoutId);
-        
+
         if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
-        const html = await response.text();
-        
-        // Basic validation: ensure we got meaningful content
-        if (html.length < 100 || !html.includes('<')) {
-          throw new Error('Received invalid HTML content');
+
+        const html = await proxy.parseResponse(response);
+
+        // Basic validation: ensure we got meaningful HTML content
+        if (!html || html.length < 50) {
+          throw new Error('Empty or too short response');
         }
-        
+
+        if (!html.includes('<') && !html.includes('<!')) {
+          throw new Error('Response does not appear to be HTML');
+        }
+
+        console.log(`Successfully fetched via ${proxy.name}`);
         return html;
-        
+
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        attempts.push({
-          url: baseProxyUrl,
+        results.push({
+          proxyName: proxy.name,
           success: false,
           error: errorMessage
         });
-        
-        // If this is the last attempt with the last proxy, don't wait
+
+        // Log for debugging
+        console.warn(`Proxy ${proxy.name} attempt ${attempt} failed:`, errorMessage);
+
+        // Wait before retrying (exponential backoff)
         if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 500 * attempt));
         }
       }
     }
   }
-  
-  // If all proxies failed, throw a comprehensive error
-  const errorDetails = attempts
-    .map(attempt => `Proxy: ${attempt.url} - Error: ${attempt.error}`)
-    .join('; ');
-    
-  console.warn('All CORS proxy attempts failed:', errorDetails);
-    
-  throw new Error(`Failed to fetch URL from all CORS proxies. Last error: ${attempts[attempts.length - 1]?.error}. Tried ${CORS_PROXIES.length} different proxy services with ${maxRetries} attempts each.`);
+
+  // All proxies failed - provide helpful error message
+  const lastError = results[results.length - 1]?.error || 'Unknown error';
+
+  console.error('All CORS proxy attempts failed:', results);
+
+  throw new Error(
+    `Unable to fetch the URL. This could be because:\n` +
+    `• The website blocks automated access\n` +
+    `• The website is not publicly accessible\n` +
+    `• Network connectivity issues\n\n` +
+    `Technical details: ${lastError}`
+  );
 }
