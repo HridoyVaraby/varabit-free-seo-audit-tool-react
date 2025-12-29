@@ -102,7 +102,7 @@ export function PdfDownloadButton({ results, url, variant = 'primary' }: PdfDown
       doc.rect(0, 0, pageWidth, 50, 'F');
 
       doc.setFontSize(24);
-      doc.setTextColor(0, 212, 170);
+      doc.setTextColor(0, 153, 204);
       doc.text('Varabit SEO Audit Report', margin, 30);
 
       yPosition = 60;
@@ -131,7 +131,7 @@ export function PdfDownloadButton({ results, url, variant = 'primary' }: PdfDown
 
         // Status
         doc.setFontSize(10);
-        const statusColor = result.status === 'pass' ? [0, 212, 170] :
+        const statusColor = result.status === 'pass' ? [0, 153, 204] :
           result.status === 'warning' ? [245, 158, 11] :
             [239, 68, 68];
         doc.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
@@ -174,7 +174,7 @@ export function PdfDownloadButton({ results, url, variant = 'primary' }: PdfDown
         // Suggestions
         if (result.suggestions.length > 0) {
           doc.setFont('helvetica', 'bold');
-          doc.setTextColor(0, 212, 170);
+          doc.setTextColor(0, 153, 204);
           doc.text('Recommendations:', margin, yPosition);
           doc.setFont('helvetica', 'normal');
           yPosition += 5;
